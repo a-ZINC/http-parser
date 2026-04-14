@@ -37,11 +37,20 @@ RequestLine parseRequestLine(std::string_view line) {
     return rl;
 };
 
-
-
-
 std::vector<Header> parseHeaders(std::string_view headers) {
-
+    std::vector<Header> head;
+    size_t pos = 0;
+    while(pos < headers.size()) {
+        size_t eol = headers.find("\r\n", pos);
+        if (eol == std::string_view::npos) throw std::invalid_argument("No line end found");
+        size_t colon = headers.find(":", pos);
+        if (colon == std::string_view::npos) throw std::invalid_argument("No colon found");
+        std::string_view key = headers.substr(pos, colon - pos);
+        std::string_view value = headers.substr(colon + 2, eol - colon - 2);
+        pos = eol + 2;
+        head.push_back({key, value});
+    }
+    return head;
 }
 
 int main() {
@@ -49,6 +58,11 @@ int main() {
         "GET / HTTP/1.1",
         "POST /api/users   HTTP/1.1",
         "DELETE    /users/42    HTTP/1.0"
+    };
+    std::vector<std::string> headers = {
+        "Host: example1.com\r\nContent-Type: application/json\r\n",
+        "Host: example2.com\r\nContent-Type: application/json\r\n",
+        "Host: example3.com\r\nContent-Type: application/json\r\n"
     };
 
     for (auto req : reqs) {
@@ -58,6 +72,15 @@ int main() {
         std::cout << "method: " << rl.method << std::endl;
         std::cout << "uri: " << rl.uri << std::endl;
         std::cout << "version: " << rl.version << std::endl;
+    }
+
+    for (auto header : headers) {
+        std::cout<<std::endl;
+        std::cout << header << std::endl;
+        std::vector<Header> headers = parseHeaders(header);
+        for (auto h : headers) {
+            std::cout << h.first << ": " << h.second << std::endl;
+        }
     }
     
 }
